@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500&display=swap');
 
 /* ─── Container ─── */
 .flipbook-container {
@@ -9,23 +9,10 @@
   justify-content: center;
   min-height: 100vh;
   width: 100%;
-  background: radial-gradient(ellipse at 50% 40%, #1e1e2a 0%, #0d0d12 70%);
+  background-color: #121212;
   overflow: hidden;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   user-select: none;
-}
-
-/* Ambient glow behind the book */
-.ambient-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 700px;
-  height: 500px;
-  background: radial-gradient(ellipse, rgba(110, 142, 251, 0.08) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* ─── Book Area ─── */
@@ -34,7 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   z-index: 1;
   touch-action: pan-y;
 }
@@ -42,14 +29,14 @@
 /* ─── Flipbook Element ─── */
 .flipbook-el {
   box-shadow:
-    0 30px 60px -15px rgba(0, 0, 0, 0.6),
-    0 0 1px rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 1px rgba(255, 255, 255, 0.05);
+  border-radius: 1px;
 }
 
 /* ─── Page ─── */
 .page-wrapper {
-  background-color: #faf8f4;
+  background-color: #f7f5f0;
   overflow: hidden;
   position: relative;
 }
@@ -60,8 +47,8 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: 20px;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.12) 0%, transparent 100%);
+  width: 24px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
   pointer-events: none;
   z-index: 2;
 }
@@ -80,65 +67,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.25rem;
   color: #fff;
   z-index: 1;
 }
 
-.loader-ring {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.5rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.spin-icon {
-  animation: spin 1.2s linear infinite;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.loading-state h2 {
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: -0.3px;
+.loading-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
   margin: 0;
-}
-
-.loading-state p {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0;
+  text-transform: uppercase;
+  color: #e8e3d3;
 }
 
 .progress-bar-track {
-  width: 260px;
-  height: 4px;
+  width: 180px;
+  height: 1px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 100px;
-  overflow: hidden;
   margin-top: 0.5rem;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6e8efb, #a777e3);
-  border-radius: 100px;
-  transition: width 0.3s ease;
+  background: #e8e3d3;
+  transition: width 0.4s ease;
 }
 
 .progress-text {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.4);
-  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
 }
 
 /* ─── Navigation Arrows ─── */
@@ -147,26 +108,21 @@
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.7);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.2);
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
 }
 
 .nav-arrow:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  transform: translateY(-50%) scale(1.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  transform: translateY(-50%) scale(1.1);
 }
 
 .nav-arrow:active:not(:disabled) {
@@ -174,8 +130,9 @@
 }
 
 .nav-arrow:disabled {
-  opacity: 0.2;
-  cursor: not-allowed;
+  opacity: 0;
+  cursor: default;
+  pointer-events: none;
 }
 
 .nav-arrow-left {
@@ -189,57 +146,42 @@
 /* ─── Bottom Toolbar ─── */
 .controls-toolbar {
   position: fixed;
-  bottom: 1.5rem;
+  bottom: 2.5rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 0.6rem 1.4rem;
-  background: rgba(20, 20, 28, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 100px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  gap: 1.5rem;
   z-index: 50;
-  transition: all 0.3s ease;
-}
-
-.controls-toolbar:hover {
-  background: rgba(28, 28, 38, 0.75);
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .controls-group {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 1rem;
 }
 
 .controls-separator {
   width: 1px;
-  height: 20px;
+  height: 16px;
   background: rgba(255, 255, 255, 0.15);
 }
 
 .control-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.3);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0.4rem;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: color 0.3s ease;
   outline: none;
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .control-btn:active {
@@ -247,19 +189,20 @@
 }
 
 .page-indicator {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 
 .zoom-indicator {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
   min-width: 42px;
   text-align: center;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Responsive ─── */
@@ -270,16 +213,15 @@
   }
 
   .nav-arrow-left {
-    left: 0.75rem;
+    left: 0.5rem;
   }
 
   .nav-arrow-right {
-    right: 0.75rem;
+    right: 0.5rem;
   }
 
   .controls-toolbar {
-    bottom: 1rem;
-    padding: 0.5rem 1rem;
-    gap: 0.75rem;
+    bottom: 1.5rem;
+    gap: 1rem;
   }
 }

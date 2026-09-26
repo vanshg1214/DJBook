@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import * as pdfjsLib from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import './FlipbookViewer.css';
 
 // Set up the pdf.js worker
@@ -158,20 +158,13 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
 
   return (
     <div className="flipbook-container" ref={containerRef}>
-      {/* Ambient glow effect */}
-      <div className="ambient-glow"></div>
-
       {loading ? (
         <div className="loading-state">
-          <div className="loader-ring">
-            <Loader2 className="spin-icon" size={48} />
-          </div>
-          <h2>Preparing Your Book</h2>
-          <p>Rendering page {Math.max(1, Math.round(loadProgress * numPages / 100))} of {numPages || '...'}</p>
+          <h2 className="loading-title">Great Galleries</h2>
           <div className="progress-bar-track">
             <div className="progress-bar-fill" style={{ width: `${loadProgress}%` }}></div>
           </div>
-          <span className="progress-text">{loadProgress}%</span>
+          <span className="progress-text">Loading {loadProgress}%</span>
         </div>
       ) : (
         <>

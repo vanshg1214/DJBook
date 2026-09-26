@@ -141,12 +141,13 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
   const bookWidth = Math.min(dimensions.width, 500);
   const bookHeight = Math.round(bookWidth * (dimensions.height / dimensions.width));
 
-  const isMobile = windowWidth < 768;
+  // Use 1024 as breakpoint to ensure iPads and large phones get the single-page portrait mode
+  const isMobile = windowWidth < 1024;
   const domWidth = isMobile ? bookWidth : bookWidth * 2;
   const domHeight = bookHeight;
 
-  const paddingX = isMobile ? 32 : 120;
-  const paddingY = 160;
+  const paddingX = isMobile ? 16 : 120;
+  const paddingY = isMobile ? 120 : 160;
 
   const availableWidth = windowWidth - paddingX;
   const availableHeight = windowHeight - paddingY;
@@ -177,21 +178,25 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
               }px)` 
             }}
           >
-            <div style={{ width: domWidth, height: domHeight }}>
+            <div style={{ width: domWidth, height: domHeight, maxWidth: '100%' }}>
               {/* @ts-ignore — react-pageflip types are incomplete */}
               <HTMLFlipBook
                 key={isMobile ? 'mobile' : 'desktop'}
                 width={bookWidth}
                 height={bookHeight}
                 size={isMobile ? "stretch" : "fixed"}
-              maxShadowOpacity={0.5}
-              showCover={!isMobile}
-              mobileScrollSupport={true}
-              onFlip={onFlip}
-              className="flipbook-el"
-              ref={bookRef}
-              usePortrait={isMobile}
-              startPage={Math.max(0, currentPage - 1)}
+                minWidth={300}
+                maxWidth={bookWidth}
+                minHeight={400}
+                maxHeight={bookHeight}
+                maxShadowOpacity={0.5}
+                showCover={true}
+                mobileScrollSupport={true}
+                onFlip={onFlip}
+                className="flipbook-el"
+                ref={bookRef}
+                usePortrait={true}
+                startPage={Math.max(0, currentPage - 1)}
               drawShadow={true}
               flippingTime={800}
               useMouseEvents={true}

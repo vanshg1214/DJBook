@@ -86,6 +86,7 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
           canvas.height = vp.height;
           const ctx = canvas.getContext('2d')!;
 
+          // @ts-ignore - Type definitions for pdfjs-dist are sometimes out of sync with runtime requirements
           await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
           images.push(canvas.toDataURL('image/jpeg', 0.92));

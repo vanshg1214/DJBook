@@ -177,12 +177,13 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
               }px)` 
             }}
           >
-            {/* @ts-ignore — react-pageflip types are incomplete */}
-            <HTMLFlipBook
-              key={isMobile ? 'mobile' : 'desktop'}
-              width={bookWidth}
-              height={bookHeight}
-              size="fixed"
+            <div style={{ width: domWidth, height: domHeight }}>
+              {/* @ts-ignore — react-pageflip types are incomplete */}
+              <HTMLFlipBook
+                key={isMobile ? 'mobile' : 'desktop'}
+                width={bookWidth}
+                height={bookHeight}
+                size={isMobile ? "stretch" : "fixed"}
               maxShadowOpacity={0.5}
               showCover={!isMobile}
               mobileScrollSupport={true}
@@ -208,6 +209,7 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
                 />
               ))}
             </HTMLFlipBook>
+            </div>
           </div>
 
           {/* Navigation Arrows */}

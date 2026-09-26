@@ -141,11 +141,11 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
   const bookHeight = Math.round(bookWidth * (dimensions.height / dimensions.width));
 
   const isMobile = windowWidth < 768;
-  const domWidth = bookWidth * 2; // Always 2 pages wide in DOM
+  const domWidth = isMobile ? bookWidth : bookWidth * 2;
   const domHeight = bookHeight;
 
-  const paddingX = isMobile ? 16 : 120; // minimal padding on mobile
-  const paddingY = isMobile ? 120 : 160;
+  const paddingX = isMobile ? 32 : 120;
+  const paddingY = 160;
 
   const availableWidth = windowWidth - paddingX;
   const availableHeight = windowHeight - paddingY;
@@ -178,24 +178,24 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
             className="book-area" 
             style={{ 
               transform: `scale(${finalScale}) translateX(${
-                currentPage === 1 ? -(bookWidth / 2) : 
-                (currentPage === numPages && numPages % 2 === 0) ? (bookWidth / 2) : 0
+                (!isMobile && currentPage === 1) ? -(bookWidth / 2) : 
+                (!isMobile && currentPage === numPages && numPages % 2 === 0) ? (bookWidth / 2) : 0
               }px)` 
             }}
           >
             {/* @ts-ignore — react-pageflip types are incomplete */}
             <HTMLFlipBook
-              key="flipbook"
+              key={isMobile ? 'mobile' : 'desktop'}
               width={bookWidth}
               height={bookHeight}
               size="fixed"
               maxShadowOpacity={0.5}
-              showCover={true}
-              mobileScrollSupport={false}
+              showCover={!isMobile}
+              mobileScrollSupport={true}
               onFlip={onFlip}
               className="flipbook-el"
               ref={bookRef}
-              usePortrait={false}
+              usePortrait={isMobile}
               startPage={Math.max(0, currentPage - 1)}
               drawShadow={true}
               flippingTime={800}

@@ -35,6 +35,9 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
   const [dimensions, setDimensions] = useState({ width: 459, height: 594 });
   const bookRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Capture initial page only once per mount so it doesn't disrupt react-pageflip state
+  const initialPageRef = useRef(Math.max(0, currentPage - 1));
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
@@ -196,7 +199,7 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
                 className="flipbook-el"
                 ref={bookRef}
                 usePortrait={true}
-                startPage={Math.max(0, currentPage - 1)}
+                startPage={initialPageRef.current}
               drawShadow={true}
               flippingTime={800}
               useMouseEvents={true}

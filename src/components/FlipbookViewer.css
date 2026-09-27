@@ -42,6 +42,8 @@
   -webkit-backdrop-filter: blur(8px);
   transition: border-color 0.3s ease, color 0.3s ease;
   outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .lang-switcher-btn:hover {
@@ -55,6 +57,19 @@
 
 .lang-switcher-chevron.is-open {
   transform: rotate(180deg);
+}
+
+.lang-switcher-spinner {
+  animation: lang-switcher-spin 0.8s linear infinite;
+}
+
+@keyframes lang-switcher-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lang-switcher-btn:disabled {
+  cursor: default;
 }
 
 .lang-switcher-menu {
@@ -83,7 +98,10 @@
   padding: 0.5rem 0.65rem;
   border-radius: 6px;
   cursor: pointer;
+  outline: none;
   transition: background 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .lang-switcher-option:hover {
@@ -263,6 +281,8 @@
   padding: 0.4rem;
   transition: color 0.3s ease;
   outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .control-btn:hover {

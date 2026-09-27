@@ -4,6 +4,11 @@
   padding: 0;
 }
 
+button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;

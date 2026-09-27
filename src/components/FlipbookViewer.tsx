@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import * as pdfjsLib from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, ChevronDown, Loader2 } from 'lucide-react';
 import './FlipbookViewer.css';
 
 // Set up the pdf.js worker
@@ -17,6 +17,48 @@ const LANGUAGES = {
 
 type LanguageCode = keyof typeof LANGUAGES;
 
+interface PdfData {
+  images: string[];
+  numPages: number;
+  dimensions: { width: number; height: number };
+}
+
+// Renders every page of a PDF to a JPEG data URL
+async function loadPdfData(url: string, onProgress?: (percent: number) => void): Promise<PdfData> {
+  const loadingTask = pdfjsLib.getDocument({ url });
+  const pdf = await loadingTask.promise;
+  const total = pdf.numPages;
+
+  const firstPage = await pdf.getPage(1);
+  const firstViewport = firstPage.getViewport({ scale: 1.5 });
+  const dimensions = {
+    width: Math.round(firstViewport.width),
+    height: Math.round(firstViewport.height),
+  };
+
+  const images: string[] = [];
+
+  for (let i = 1; i <= total; i++) {
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 1.5 });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width;
+    canvas.height = vp.height;
+    const ctx = canvas.getContext('2d')!;
+
+    // @ts-ignore - Type definitions for pdfjs-dist are sometimes out of sync with runtime requirements
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+    images.push(canvas.toDataURL('image/jpeg', 0.92));
+    onProgress?.(Math.round((i / total) * 100));
+
+    page.cleanup();
+  }
+
+  return { images, numPages: total, dimensions };
+}
+
 // Individual page component that receives an image data URL
 const PageImage = React.forwardRef<HTMLDivElement, { src: string; pageNum: number }>(
   ({ src, pageNum }, ref) => {
@@ -31,24 +73,78 @@ const PageImage = React.forwardRef<HTMLDivElement, { src: string; pageNum: numbe
 export default function FlipbookViewer() {
   const [language, setLanguage] = useState<LanguageCode>('en');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
-  const pdfFile = LANGUAGES[language].file;
+  const [switching, setSwitching] = useState(false);
 
-  const [pageImages, setPageImages] = useState<string[]>([]);
-  const [numPages, setNumPages] = useState(0);
+  // Cache of fully-rendered PDFs, keyed by language, so switching is instant
+  const [cache, setCache] = useState<Partial<Record<LanguageCode, PdfData>>>({});
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
+  const loadPromisesRef = useRef<Partial<Record<LanguageCode, Promise<PdfData>>>>({});
+
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [scale, setScale] = useState(1);
-  const [dimensions, setDimensions] = useState({ width: 459, height: 594 });
   const bookRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const langMenuRef = useRef<HTMLDivElement>(null);
 
-  // Capture initial page only once per mount so it doesn't disrupt react-pageflip state
+  // Which page the flipbook should mount showing; updated right before a language switch
   const initialPageRef = useRef(0);
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+
+  const current = cache[language];
+  const pageImages = current?.images ?? [];
+  const numPages = current?.numPages ?? 0;
+  const dimensions = current?.dimensions ?? { width: 459, height: 594 };
+
+  const ensureLoaded = useCallback((code: LanguageCode, onProgress?: (percent: number) => void) => {
+    const cached = cacheRef.current[code];
+    if (cached) return Promise.resolve(cached);
+
+    if (!loadPromisesRef.current[code]) {
+      loadPromisesRef.current[code] = loadPdfData(LANGUAGES[code].file, onProgress)
+        .then(data => {
+          cacheRef.current = { ...cacheRef.current, [code]: data };
+          setCache(cacheRef.current);
+          return data;
+        })
+        .catch(err => {
+          delete loadPromisesRef.current[code];
+          throw err;
+        });
+    }
+
+    return loadPromisesRef.current[code]!;
+  }, []);
+
+  // Load the default language up front, then silently preload the other one in
+  // the background so switching later is instant with no loading screen.
+  useEffect(() => {
+    let cancelled = false;
+
+    ensureLoaded(language, percent => {
+      if (!cancelled) setLoadProgress(percent);
+    }).then(() => {
+      if (cancelled) return;
+      setLoading(false);
+
+      const otherLanguages = (Object.keys(LANGUAGES) as LanguageCode[]).filter(code => code !== language);
+      otherLanguages.forEach(code => {
+        ensureLoaded(code).catch(err => console.error(`Failed to preload ${code} edition:`, err));
+      });
+    }).catch(err => {
+      console.error('Failed to load PDF:', err);
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -72,78 +168,31 @@ export default function FlipbookViewer() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [langMenuOpen]);
 
-  const selectLanguage = useCallback((code: LanguageCode) => {
-    setLanguage(code);
+  const selectLanguage = useCallback(async (code: LanguageCode) => {
     setLangMenuOpen(false);
-  }, []);
+    if (code === language) return;
 
-  // Render all PDF pages to images
-  useEffect(() => {
-    let cancelled = false;
-
-    async function renderPDF() {
+    let data = cacheRef.current[code];
+    if (!data) {
+      // Rare: user switched before the background preload finished. Wait for
+      // it, with a small inline spinner instead of the full loading screen.
+      setSwitching(true);
       try {
-        setLoading(true);
-        setLoadProgress(0);
-        setCurrentPage(1);
-        initialPageRef.current = 0;
-
-        const loadingTask = pdfjsLib.getDocument({ url: pdfFile });
-        const pdf = await loadingTask.promise;
-        const total = pdf.numPages;
-
-        if (cancelled) return;
-        setNumPages(total);
-
-        // Get the first page to determine dimensions
-        const firstPage = await pdf.getPage(1);
-        const viewport = firstPage.getViewport({ scale: 1.5 });
-        const pageWidth = Math.round(viewport.width);
-        const pageHeight = Math.round(viewport.height);
-
-        if (cancelled) return;
-        setDimensions({ width: pageWidth, height: pageHeight });
-
-        const images: string[] = [];
-
-        for (let i = 1; i <= total; i++) {
-          if (cancelled) return;
-
-          const page = await pdf.getPage(i);
-          const vp = page.getViewport({ scale: 1.5 });
-
-          const canvas = document.createElement('canvas');
-          canvas.width = vp.width;
-          canvas.height = vp.height;
-          const ctx = canvas.getContext('2d')!;
-
-          // @ts-ignore - Type definitions for pdfjs-dist are sometimes out of sync with runtime requirements
-          await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-          images.push(canvas.toDataURL('image/jpeg', 0.92));
-
-          setLoadProgress(Math.round((i / total) * 100));
-
-          // Clean up
-          page.cleanup();
-        }
-
-        if (!cancelled) {
-          setPageImages(images);
-          setLoading(false);
-        }
+        data = await ensureLoaded(code);
       } catch (err) {
-        console.error('Failed to load PDF:', err);
-        setLoading(false);
+        console.error(`Failed to load ${code} edition:`, err);
+        setSwitching(false);
+        return;
       }
+      setSwitching(false);
     }
 
-    renderPDF();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pdfFile]);
+    // Keep the reader on the same page number, clamped to the new edition's length
+    const clampedIndex = Math.min(Math.max(currentPage - 1, 0), data.numPages - 1);
+    initialPageRef.current = clampedIndex;
+    setCurrentPage(clampedIndex + 1);
+    setLanguage(code);
+  }, [language, currentPage, ensureLoaded]);
 
   const flipNext = useCallback(() => {
     bookRef.current?.pageFlip()?.flipNext();
@@ -206,9 +255,14 @@ export default function FlipbookViewer() {
           onClick={() => setLangMenuOpen(open => !open)}
           aria-label="Change language"
           aria-expanded={langMenuOpen}
+          disabled={switching}
         >
           <span>{LANGUAGES[language].label}</span>
-          <ChevronDown size={14} className={`lang-switcher-chevron ${langMenuOpen ? 'is-open' : ''}`} />
+          {switching ? (
+            <Loader2 size={14} className="lang-switcher-spinner" />
+          ) : (
+            <ChevronDown size={14} className={`lang-switcher-chevron ${langMenuOpen ? 'is-open' : ''}`} />
+          )}
         </button>
         {langMenuOpen && (
           <div className="lang-switcher-menu">
@@ -235,13 +289,13 @@ export default function FlipbookViewer() {
         </div>
       ) : (
         <>
-          <div 
-            className="book-area" 
-            style={{ 
+          <div
+            className="book-area"
+            style={{
               transform: `scale(${finalScale}) translateX(${
-                (!isMobile && currentPage === 1) ? -(bookWidth / 2) : 
+                (!isMobile && currentPage === 1) ? -(bookWidth / 2) :
                 (!isMobile && currentPage === numPages && numPages % 2 === 0) ? (bookWidth / 2) : 0
-              }px)` 
+              }px)`
             }}
           >
             <div style={{ width: domWidth, height: domHeight, maxWidth: '100%' }}>

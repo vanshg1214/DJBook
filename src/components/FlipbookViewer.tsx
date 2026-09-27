@@ -11,7 +11,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const LANGUAGES = {
-  en: { label: 'EN', name: 'English', files: ['/GreatGalleries_v53.pdf', '/GreatGalleries_v53_back_cover (1).pdf'], title: 'Great Galleries' },
+  en: { label: 'EN', name: 'English', files: ['/GreatGalleries_v53.pdf', '/GreatGalleries_v53_back_cover.pdf'], title: 'Great Galleries' },
   es: { label: 'ES', name: 'Español', files: ['/GrandesGalerias_ES.pdf', '/GreatGalleries_v53_back_cover_ES.pdf'], title: 'Grandes Galerías' },
 } as const;
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import * as pdfjsLib from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize, ChevronDown } from 'lucide-react';
 import './FlipbookViewer.css';
 
 // Set up the pdf.js worker
@@ -10,9 +10,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-interface FlipbookViewerProps {
-  pdfFile: string;
-}
+const LANGUAGES = {
+  en: { label: 'EN', name: 'English', file: '/GreatGalleries_v53.pdf', title: 'Great Galleries' },
+  es: { label: 'ES', name: 'Español', file: '/GrandesGalerias_ES.pdf', title: 'Grandes Galerías' },
+} as const;
+
+type LanguageCode = keyof typeof LANGUAGES;
 
 // Individual page component that receives an image data URL
 const PageImage = React.forwardRef<HTMLDivElement, { src: string; pageNum: number }>(
@@ -25,7 +28,11 @@ const PageImage = React.forwardRef<HTMLDivElement, { src: string; pageNum: numbe
   }
 );
 
-export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
+export default function FlipbookViewer() {
+  const [language, setLanguage] = useState<LanguageCode>('en');
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const pdfFile = LANGUAGES[language].file;
+
   const [pageImages, setPageImages] = useState<string[]>([]);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,9 +42,10 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
   const [dimensions, setDimensions] = useState({ width: 459, height: 594 });
   const bookRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+  const langMenuRef = useRef<HTMLDivElement>(null);
+
   // Capture initial page only once per mount so it doesn't disrupt react-pageflip state
-  const initialPageRef = useRef(Math.max(0, currentPage - 1));
+  const initialPageRef = useRef(0);
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
@@ -51,6 +59,24 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close the language dropdown when clicking outside of it
+  useEffect(() => {
+    if (!langMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
+        setLangMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [langMenuOpen]);
+
+  const selectLanguage = useCallback((code: LanguageCode) => {
+    setLanguage(code);
+    setLangMenuOpen(false);
+  }, []);
+
   // Render all PDF pages to images
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +85,8 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
       try {
         setLoading(true);
         setLoadProgress(0);
+        setCurrentPage(1);
+        initialPageRef.current = 0;
 
         const loadingTask = pdfjsLib.getDocument({ url: pdfFile });
         const pdf = await loadingTask.promise;
@@ -172,9 +200,34 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
 
   return (
     <div className="flipbook-container" ref={containerRef}>
+      <div className="lang-switcher" ref={langMenuRef}>
+        <button
+          className="lang-switcher-btn"
+          onClick={() => setLangMenuOpen(open => !open)}
+          aria-label="Change language"
+          aria-expanded={langMenuOpen}
+        >
+          <span>{LANGUAGES[language].label}</span>
+          <ChevronDown size={14} className={`lang-switcher-chevron ${langMenuOpen ? 'is-open' : ''}`} />
+        </button>
+        {langMenuOpen && (
+          <div className="lang-switcher-menu">
+            {(Object.keys(LANGUAGES) as LanguageCode[]).map(code => (
+              <button
+                key={code}
+                className={`lang-switcher-option ${code === language ? 'is-active' : ''}`}
+                onClick={() => selectLanguage(code)}
+              >
+                {LANGUAGES[code].name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {loading ? (
         <div className="loading-state">
-          <h2 className="loading-title">Great Galleries</h2>
+          <h2 className="loading-title">{LANGUAGES[language].title}</h2>
           <div className="progress-bar-track">
             <div className="progress-bar-fill" style={{ width: `${loadProgress}%` }}></div>
           </div>
@@ -194,7 +247,7 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
             <div style={{ width: domWidth, height: domHeight, maxWidth: '100%' }}>
               {/* @ts-ignore — react-pageflip types are incomplete */}
               <HTMLFlipBook
-                key={isMobile ? 'mobile' : 'desktop'}
+                key={`${isMobile ? 'mobile' : 'desktop'}-${language}`}
                 width={bookWidth}
                 height={bookHeight}
                 size={isMobile ? "stretch" : "fixed"}

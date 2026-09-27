@@ -11,8 +11,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const LANGUAGES = {
-  en: { label: 'EN', name: 'English', file: '/GreatGalleries_v53.pdf', title: 'Great Galleries' },
-  es: { label: 'ES', name: 'Español', file: '/GrandesGalerias_ES.pdf', title: 'Grandes Galerías' },
+  en: { label: 'EN', name: 'English', files: ['/GreatGalleries_v53.pdf', '/GreatGalleries_v53_back_cover (1).pdf'], title: 'Great Galleries' },
+  es: { label: 'ES', name: 'Español', files: ['/GrandesGalerias_ES.pdf', '/GreatGalleries_v53_back_cover_ES.pdf'], title: 'Grandes Galerías' },
 } as const;
 
 type LanguageCode = keyof typeof LANGUAGES;
@@ -23,40 +23,58 @@ interface PdfData {
   dimensions: { width: number; height: number };
 }
 
-// Renders every page of a PDF to a JPEG data URL
-async function loadPdfData(url: string, onProgress?: (percent: number) => void): Promise<PdfData> {
-  const loadingTask = pdfjsLib.getDocument({ url });
-  const pdf = await loadingTask.promise;
-  const total = pdf.numPages;
-
-  const firstPage = await pdf.getPage(1);
-  const firstViewport = firstPage.getViewport({ scale: 1.5 });
-  const dimensions = {
-    width: Math.round(firstViewport.width),
-    height: Math.round(firstViewport.height),
-  };
-
+// Renders every page of multiple PDFs to JPEG data URLs
+async function loadPdfData(urls: string[], onProgress?: (percent: number) => void): Promise<PdfData> {
   const images: string[] = [];
-
-  for (let i = 1; i <= total; i++) {
-    const page = await pdf.getPage(i);
-    const vp = page.getViewport({ scale: 1.5 });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = vp.width;
-    canvas.height = vp.height;
-    const ctx = canvas.getContext('2d')!;
-
-    // @ts-ignore - Type definitions for pdfjs-dist are sometimes out of sync with runtime requirements
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
-
-    images.push(canvas.toDataURL('image/jpeg', 0.92));
-    onProgress?.(Math.round((i / total) * 100));
-
-    page.cleanup();
+  let dimensions = { width: 0, height: 0 };
+  let totalNumPages = 0;
+  
+  // First pass to get total pages for accurate progress
+  const pdfDocs = [];
+  for (const url of urls) {
+    const loadingTask = pdfjsLib.getDocument({ url });
+    const pdf = await loadingTask.promise;
+    totalNumPages += pdf.numPages;
+    pdfDocs.push(pdf);
   }
 
-  return { images, numPages: total, dimensions };
+  let processedPages = 0;
+
+  for (let u = 0; u < pdfDocs.length; u++) {
+    const pdf = pdfDocs[u];
+    const total = pdf.numPages;
+
+    if (u === 0) {
+      const firstPage = await pdf.getPage(1);
+      const firstViewport = firstPage.getViewport({ scale: 1.5 });
+      dimensions = {
+        width: Math.round(firstViewport.width),
+        height: Math.round(firstViewport.height),
+      };
+    }
+
+    for (let i = 1; i <= total; i++) {
+      const page = await pdf.getPage(i);
+      const vp = page.getViewport({ scale: 1.5 });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width;
+      canvas.height = vp.height;
+      const ctx = canvas.getContext('2d')!;
+
+      // @ts-ignore
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+      images.push(canvas.toDataURL('image/jpeg', 0.92));
+      
+      processedPages++;
+      onProgress?.(Math.round((processedPages / totalNumPages) * 100));
+
+      page.cleanup();
+    }
+  }
+
+  return { images, numPages: totalNumPages, dimensions };
 }
 
 // Individual page component that receives an image data URL
@@ -105,7 +123,7 @@ export default function FlipbookViewer() {
     if (cached) return Promise.resolve(cached);
 
     if (!loadPromisesRef.current[code]) {
-      loadPromisesRef.current[code] = loadPdfData(LANGUAGES[code].file, onProgress)
+      loadPromisesRef.current[code] = loadPdfData(LANGUAGES[code].files, onProgress)
         .then(data => {
           cacheRef.current = { ...cacheRef.current, [code]: data };
           setCache(cacheRef.current);

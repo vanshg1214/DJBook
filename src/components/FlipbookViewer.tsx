@@ -17,6 +17,12 @@ const LANGUAGES = {
 
 type LanguageCode = keyof typeof LANGUAGES;
 
+// Pages are rasterized once at load time, so this is the resolution ceiling for
+// both the base view and the zoom control. Higher = sharper text, at the cost
+// of longer render time and a bigger in-memory image cache.
+const RENDER_SCALE = 2.5;
+const JPEG_QUALITY = 0.96;
+
 interface PdfData {
   images: string[];
   numPages: number;
@@ -24,7 +30,7 @@ interface PdfData {
 }
 
 // Renders every page of multiple PDFs to JPEG data URLs
-async function loadPdfData(urls: string[], onProgress?: (percent: number) => void): Promise<PdfData> {
+async function loadPdfData(urls: readonly string[], onProgress?: (percent: number) => void): Promise<PdfData> {
   const images: string[] = [];
   let dimensions = { width: 0, height: 0 };
   let totalNumPages = 0;
@@ -46,7 +52,7 @@ async function loadPdfData(urls: string[], onProgress?: (percent: number) => voi
 
     if (u === 0) {
       const firstPage = await pdf.getPage(1);
-      const firstViewport = firstPage.getViewport({ scale: 1.5 });
+      const firstViewport = firstPage.getViewport({ scale: RENDER_SCALE });
       dimensions = {
         width: Math.round(firstViewport.width),
         height: Math.round(firstViewport.height),
@@ -55,7 +61,7 @@ async function loadPdfData(urls: string[], onProgress?: (percent: number) => voi
 
     for (let i = 1; i <= total; i++) {
       const page = await pdf.getPage(i);
-      const vp = page.getViewport({ scale: 1.5 });
+      const vp = page.getViewport({ scale: RENDER_SCALE });
 
       const canvas = document.createElement('canvas');
       canvas.width = vp.width;
@@ -65,7 +71,7 @@ async function loadPdfData(urls: string[], onProgress?: (percent: number) => voi
       // @ts-ignore
       await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-      images.push(canvas.toDataURL('image/jpeg', 0.92));
+      images.push(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
       
       processedPages++;
       onProgress?.(Math.round((processedPages / totalNumPages) * 100));

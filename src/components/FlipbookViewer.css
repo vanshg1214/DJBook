@@ -111,8 +111,8 @@
   z-index: 10;
   background: transparent;
   border: none;
-  color: rgba(232, 227, 211, 0.7); /* golden color #e8e3d3 */
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  color: #ab8a4e;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
   width: 60px;
   height: 60px;
   display: flex;
@@ -126,7 +126,7 @@
 }
 
 .nav-arrow:hover:not(:disabled) {
-  color: rgba(232, 227, 211, 1);
+  color: #c7a765;
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -175,7 +175,7 @@
 .control-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(171, 138, 78, 0.85);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -186,7 +186,7 @@
 }
 
 .control-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: #c7a765;
 }
 
 .control-btn:active {

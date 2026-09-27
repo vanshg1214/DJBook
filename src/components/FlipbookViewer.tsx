@@ -207,8 +207,25 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
                 mobileScrollSupport={true}
                 onFlip={onFlip}
                 onInit={() => {
-                  const page = bookRef.current?.pageFlip()?.getCurrentPageIndex();
-                  if (page !== undefined) setCurrentPage(page + 1);
+                  const pf = bookRef.current?.pageFlip();
+                  if (pf) {
+                    // Work around a bug in the underlying page-flip library: flipNext()
+                    // offsets its target point by the book's left position, but flipPrev()
+                    // doesn't, so it registers as outside the page-corner hit zone and
+                    // silently no-ops whenever the book isn't flush against the left edge
+                    // of its container (which it never is, since it's centered).
+                    const flipController = pf.getFlipController();
+                    pf.flipPrev = (corner: string = 'top') => {
+                      const rect = pf.getRender().getRect();
+                      flipController.flip({
+                        x: rect.left + 10,
+                        y: corner === 'bottom' ? rect.height - 2 : 1,
+                      });
+                    };
+
+                    const page = pf.getCurrentPageIndex();
+                    if (page !== undefined) setCurrentPage(page + 1);
+                  }
                 }}
                 className="flipbook-el"
                 ref={bookRef}

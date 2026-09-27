@@ -190,7 +190,7 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
                 minHeight={400}
                 maxHeight={bookHeight}
                 maxShadowOpacity={0.5}
-                showCover={true}
+                showCover={!isMobile}
                 mobileScrollSupport={true}
                 onFlip={onFlip}
                 className="flipbook-el"

@@ -119,10 +119,20 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
 
   const flipNext = useCallback(() => {
     bookRef.current?.pageFlip()?.flipNext();
+    // Update page state after flip
+    setTimeout(() => {
+      const page = bookRef.current?.pageFlip()?.getCurrentPageIndex();
+      if (page !== undefined) setCurrentPage(page + 1);
+    }, 850);
   }, []);
 
   const flipPrev = useCallback(() => {
     bookRef.current?.pageFlip()?.flipPrev();
+    // Update page state after flip
+    setTimeout(() => {
+      const page = bookRef.current?.pageFlip()?.getCurrentPageIndex();
+      if (page !== undefined) setCurrentPage(page + 1);
+    }, 850);
   }, []);
 
   const onFlip = useCallback((e: any) => {
@@ -196,6 +206,10 @@ export default function FlipbookViewer({ pdfFile }: FlipbookViewerProps) {
                 showCover={!isMobile}
                 mobileScrollSupport={true}
                 onFlip={onFlip}
+                onInit={() => {
+                  const page = bookRef.current?.pageFlip()?.getCurrentPageIndex();
+                  if (page !== undefined) setCurrentPage(page + 1);
+                }}
                 className="flipbook-el"
                 ref={bookRef}
                 usePortrait={true}
